@@ -31,7 +31,6 @@
 #include <QLibrary>
 #include <QMessageBox>
 #include <QCheckBox>
-#include <QDebug>
 
 #ifdef _WIN32
 #include <shlobj.h>
@@ -731,7 +730,6 @@ void Configurator::SetPath(Path requested_path, QString path) {
         path = directory.absolutePath();
     }
 
-    qDebug() << ((path + "\n").toUtf8().constData());
     _paths[requested_path] = path;
 }
 
@@ -1076,8 +1074,6 @@ void Configurator::LoadAllConfigurations() {
             // Search the list of loaded configurations
             const QString file = QString(":/resourcefiles/") + default_configurations[i].name + ".json";
 
-            qDebug() << file.toUtf8().constData();
-
             Configuration *configuration = LoadConfiguration(file);
             if (configuration != nullptr) SaveConfiguration(configuration);
         }
@@ -1099,7 +1095,6 @@ void Configurator::LoadAllConfigurations() {
         if (info.absoluteFilePath().contains("applist.json")) continue;
 
         Configuration *configuration = LoadConfiguration(info.absoluteFilePath());
-        qDebug() << ((configuration->_name).toUtf8().constData());
 
         if (configuration != nullptr) {
             configuration->_file = info.fileName();  // Easier than parsing it myself ;-)
