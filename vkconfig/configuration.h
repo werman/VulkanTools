@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #pragma once
@@ -30,20 +30,20 @@
 
 // json file preset_index must match the preset enum values
 enum ValidationPreset {
-    ValidationPresetNone = 0,
-    ValidationPresetUserDefined = ValidationPresetNone,
-    ValidationPresetStandard = 1,
-    ValidationPresetGPUAssisted = 2,
-    ValidationPresetShaderPrintf = 3,
-    ValidationPresetReducedOverhead = 4,
-    ValidationPresetBestPractices = 5,
-    ValidationPresetSynchronization = 6,
+    VALIDATION_PRESET_NONE = 0,
+    VALIDATION_PRESET_USER_DEFINED = VALIDATION_PRESET_NONE,
+    VALIDATION_PRESET_STANDARD = 1,
+    VALIDATION_PRESET_GPU_ASSISTED = 2,
+    VALIDATION_PRESET_SHADER_PRINTF = 3,
+    VALIDATION_PRESET_REDUCED_OVERHEAD = 4,
+    VALIDATION_PRESET_BEST_PRACTICES = 5,
+    VALIDATION_PRESET_SYNCHRONIZATION = 6,
 
-    ValidationPresetFirst = ValidationPresetUserDefined,
-    ValidationPresetLast = ValidationPresetSynchronization
+    VALIDATION_PRESET_FIRST = VALIDATION_PRESET_USER_DEFINED,
+    VALIDATION_PRESET_LAST = VALIDATION_PRESET_SYNCHRONIZATION
 };
 
-enum { ValidationPresetCount = ValidationPresetLast - ValidationPresetFirst + 1 };
+enum { VALIDATION_PRESET_COUNT = VALIDATION_PRESET_LAST - VALIDATION_PRESET_FIRST + 1 };
 
 class Configuration {
    public:
@@ -57,18 +57,22 @@ class Configuration {
     ValidationPreset _preset;        // Khronos layer presets. 0 = none or user defined
 
     // A configuration is nothing but a list of layers and their settings in truth
-    std::vector<Layer> _layers;
+    std::vector<Layer> _overridden_layers;
 
     QStringList _excluded_layers;  // Just the names of blacklisted layers
 
-    bool IsLayerAvailable(const QString &layer_name, const QString &full_path) const;  // Find the layer if it exists
-    Layer *FindLayerNamed(const QString &layer_name);  // Find the layer if it exists, only care about the name
+    Layer &CreateOverriddenLayer(const Layer &layer);
+
+    bool IsOverriddenLayerAvailable(const QString &layer_name, const QString &full_path) const;  // Find the layer if it exists
+    Layer *FindOverriddenLayer(const QString &layer_name);  // Find the layer if it exists, only care about the name
 
     Configuration *DuplicateConfiguration();  // Copy a profile so we can mess with it
 
-    void CollapseConfiguration();  // Remove unused layers and settings, set blacklist
+    void CollapseConfiguration();  // Remove unused layers and settings, set exclusion list
 
-    bool IsValid() { return _all_layers_available; }
+    bool IsValid() const;
 
-    bool _all_layers_available;
+   private:
 };
+
+int test_configuration();

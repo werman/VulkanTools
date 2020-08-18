@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #pragma once
@@ -89,7 +89,7 @@ class PathFinder {
 // to reset or initialize the a full layer definition for the
 // profiles.
 struct LayerSettingsDefaults {
-    QString layer_name;                        // Name of layer
+    QString layer_name;                  // Name of layer
     std::vector<LayerSetting> settings;  // Default settings for this layer
 };
 
@@ -210,10 +210,10 @@ class Configurator {
     // in the above (defaultLayerSettings). The binding of a layer with it's
     // particular settings is done in the profile (Configuration - in configuration list).
     // This includes all found implicit, explicit, or layers found in custom folders
-    QVector<Layer*> _available_Layers;  // All the found layers, lumped together
+    std::vector<Layer> _available_layers;  // All the found layers, lumped together
     void LoadAllInstalledLayers();
-    const Layer* FindLayerNamed(QString layer_name);
-    void LoadLayersFromPath(const QString& path, QVector<Layer*>& layer_list);
+    const Layer* FindLayer(QString layer_name);
+    void LoadLayersFromPath(const QString& path, std::vector<Layer>& layers);
 
     std::vector<Configuration> _available_configurations;
 
@@ -249,8 +249,8 @@ class Configurator {
     void ClearLayerLists();
 
 #ifdef _WIN32
-    void LoadDeviceRegistry(DEVINST id, const QString& entry, QVector<Layer*>& layerList, LayerType type);
-    void LoadRegistryLayers(const QString& path, QVector<Layer*>& layerList, LayerType type);
+    void LoadDeviceRegistry(DEVINST id, const QString& entry, std::vector<Layer>& layers, LayerType type);
+    void LoadRegistryLayers(const QString& path, std::vector<Layer>& layers, LayerType type);
 
     void AddRegistryEntriesForLayers(QString qsJSONFile, QString qsSettingsFile);
     void RemoveRegistryEntriesForLayers(QString qsJSONFile, QString qsSettingsFile);

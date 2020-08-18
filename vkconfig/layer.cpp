@@ -15,11 +15,12 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #include "layer.h"
+#include "util.h"
 
 #include <QFile>
 #include <QMessageBox>
@@ -56,22 +57,21 @@ void AddString(QString& delimitedString, QString value) {
     delimitedString += value;
 }
 
-Layer::Layer() : _rank(0), _layer_state(LAYER_STATE_APPLICATION_CONTROLLED) {}
+Layer::Layer(LayerType type) : type(type), _rank(0), state(LAYER_STATE_APPLICATION_CONTROLLED) {}
+
+Layer::Layer(LayerType type, QString full_path_to_file) : type(type) {
+    bool loaded = Load(full_path_to_file);
+    assert(loaded);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-/// \brief CLayerFile::readLayerFile
-/// \param qsFullPathToFile - Fully qualified path to the layer json file.
-/// \return true on success, false on failure.
 /// Reports errors via a message box. This might be a bad idea?
-/// //////////////////////////////////////////////////////////////////////////
-bool Layer::ReadLayerFile(QString qsFullPathToFile, LayerType layerKind) {
-    _layer_type = layerKind;  // Set layer type, no way to know this from the json file
-
+bool Layer::Load(QString full_path_to_file) {
     // Open the file, should be text. Read it into a
     // temporary string.
-    if (qsFullPathToFile.isEmpty()) return false;
+    if (full_path_to_file.isEmpty()) return false;
 
-    QFile file(qsFullPathToFile);
+    QFile file(full_path_to_file);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
         QMessageBox msgBox;
@@ -83,14 +83,13 @@ bool Layer::ReadLayerFile(QString qsFullPathToFile, LayerType layerKind) {
     QString jsonText = file.readAll();
     file.close();
 
-    _layer_path = qsFullPathToFile;
+    _layer_path = full_path_to_file;
 
     //////////////////////////////////////////////////////
     // Convert the text to a JSON document & validate it.
     // It does need to be a valid json formatted file.
-    QJsonDocument jsonDoc;
     QJsonParseError parseError;
-    jsonDoc = QJsonDocument::fromJson(jsonText.toUtf8(), &parseError);
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonText.toUtf8(), &parseError);
     if (parseError.error != QJsonParseError::NoError) {
         QMessageBox msgBox;
         msgBox.setText(parseError.errorString());
@@ -136,7 +135,6 @@ bool Layer::ReadLayerFile(QString qsFullPathToFile, LayerType layerKind) {
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////
 void Layer::LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, std::vector<LayerSetting>& settings) {
     // Okay, how many settings do we have?
     QStringList settings_names = layer_settings_descriptors.keys();
@@ -146,7 +144,7 @@ void Layer::LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, 
         // user setting.
         if (settings_names[i] == QString("layer_rank")) continue;
 
-        std::vector<LayerSetting>::iterator setting = settings.emplace(settings.end(), LayerSetting()); 
+        auto setting = settings.emplace(settings.end(), LayerSetting()); 
 
         setting->name = settings_names[i];
 
@@ -179,10 +177,11 @@ void Layer::LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, 
         value = settingObject.value("type");
 
         QString type_string = value.toString();
-        // Exclusive Enums
-        if (type_string == QString("enum")) {
-            setting->type = SETTING_EXCLUSIVE_LIST;
 
+        setting->type = GetSettingType(type_string.toUtf8().constData());
+
+        // Exclusive Enums
+        if (setting->type == SETTING_EXCLUSIVE_LIST) {
             // Now we have a list of options, both the enum for the settings file, and the prompts
             value = settingObject.value("options");
             QJsonObject object = value.toObject();
@@ -194,9 +193,7 @@ void Layer::LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, 
             }
         }
         // Pick one or more from a list
-        else if (type_string == QString("multi_enum")) {
-            setting->type = SETTING_INCLUSIVE_LIST;
-
+        else if (setting->type == SETTING_INCLUSIVE_LIST) {
             // Now we have a list of options, both the enum for the settings file, and the prompts
             value = settingObject.value("options");
             QJsonObject object = value.toObject();
@@ -206,36 +203,6 @@ void Layer::LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, 
                 setting->inclusive_values << keys[v];
                 setting->inclusive_labels << object.value(keys[v]).toString();
             }
-        }
-        // Select a file. Nice and simple
-        else if (type_string == QString("save_file")) {
-            setting->type = SETTING_SAVE_FILE;
-        }
-        // Load a file.
-        else if (type_string == QString("load_file")) {
-            setting->type = SETTING_LOAD_FILE;
-        }
-        // Folder to put screen shots in
-        else if (type_string == QString("save_folder")) {
-            setting->type = SETTING_SAVE_FOLDER;
-        }
-        // Bool, also nice and simple ("true"/"false")
-        else if (type_string == QString("bool")) {
-            setting->type = SETTING_BOOL;
-        }
-        // Bool, but written out as 0 or 1
-        else if (type_string == QString("bool_numeric")) {
-            setting->type = SETTING_BOOL_NUMERIC;
-        }
-        // VUID Filter List
-        else if (type_string == QString("vuid_exclude")) {
-            setting->type = SETTING_VUID_FILTER;
-        }
-        // Just a string please
-        else if (type_string == QString("string")) {
-            setting->type = SETTING_STRING;
-        } else {
-            assert(0);
         }
     }
 }

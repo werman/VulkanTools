@@ -26,7 +26,7 @@
 #include "mainwindow.h"
 #include "appsingleton.h"
 #include "command_line.h"
-#include "test.h"
+#include "test/test.h"
 
 int main(int argc, char* argv[]) {
     const CommandLine command_line(argc, argv);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         case CommandLine::ModeRunTest: {
-            return test();
+            return run_test();
         }
     }
 }

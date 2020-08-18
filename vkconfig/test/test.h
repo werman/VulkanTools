@@ -21,12 +21,5 @@
 
 #pragma once
 
-#include "version.h"
+int run_test();
 
-int test() {
-    int error = 0;
-
-    error += test_version();
-
-    return error;
-}

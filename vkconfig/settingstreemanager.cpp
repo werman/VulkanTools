@@ -55,14 +55,14 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree, Configuration *conf
     build_tree->clear();
 
     // There will be one top level item for each layer
-    for (int layer_index = 0; layer_index < _configuration->_layers.size(); layer_index++) {
+    for (int layer_index = 0; layer_index < _configuration->_overridden_layers.size(); layer_index++) {
         QTreeWidgetItem *item = new QTreeWidgetItem();
-        item->setText(0, configuration->_layers[layer_index]._name);
+        item->setText(0, configuration->_overridden_layers[layer_index]._name);
         _configuration_settings_tree->addTopLevelItem(item);
         _layer_items.push_back(item);
 
         // Handle the case were we get off easy. No settings.
-        if (_configuration->_layers[layer_index].settings.size() == 0) {
+        if (_configuration->_overridden_layers[layer_index].settings.size() == 0) {
             QTreeWidgetItem *child = new QTreeWidgetItem();
             child->setText(0, "No User Settings");
             item->addChild(child);
@@ -72,15 +72,15 @@ void SettingsTreeManager::CreateGUI(QTreeWidget *build_tree, Configuration *conf
         // There are settings.
         // Okay kid, this is where it gets complicated...
         // Is this Khronos? Khronos is special...
-        if (configuration->_layers[layer_index]._name == QString("VK_LAYER_KHRONOS_validation")) {
-            _validation_layer_file = &configuration->_layers[layer_index];
+        if (configuration->_overridden_layers[layer_index]._name == QString("VK_LAYER_KHRONOS_validation")) {
+            _validation_layer_file = &configuration->_overridden_layers[layer_index];
             _validation_tree_item = item;
             BuildKhronosTree();
             continue;
         }
 
         // Generic is the only one left
-        BuildGenericTree(item, &configuration->_layers[layer_index]);
+        BuildGenericTree(item, &configuration->_overridden_layers[layer_index]);
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ void SettingsTreeManager::BuildKhronosTree() {
 
     _validation_presets_combo_box = new QComboBox();
     _validation_presets_combo_box->blockSignals(true);
-    for (int i = ValidationPresetFirst; i <= ValidationPresetLast; ++i) {
+    for (int i = VALIDATION_PRESET_FIRST; i <= VALIDATION_PRESET_LAST; ++i) {
         QString presetName = Configurator::Get().GetValidationPresetLabel(static_cast<ValidationPreset>(i));
 
         // There is no preset for a user defined group of settings, so watch for blank.
@@ -337,7 +337,7 @@ void SettingsTreeManager::khronosPresetChanged(int preset_index) {
     configuration.CheckApplicationRestart();
 
     // We really just don't care
-    if (preset == ValidationPresetUserDefined) return;
+    if (preset == VALIDATION_PRESET_USER_DEFINED) return;
 
     // The easiest way to do this is to create a new profile, and copy the layer over
     const QString preset_file = QString(":/resourcefiles/") + configuration.GetValidationPresetName(preset) + ".json";
@@ -347,8 +347,8 @@ void SettingsTreeManager::khronosPresetChanged(int preset_index) {
     // Copy it all into the real layer and delete it
     // Find the KhronosLayer
     std::size_t validation_layer_index = -1;
-    for (std::size_t i = 0, n = _configuration->_layers.size(); i < n; ++i)
-        if (_configuration->_layers[i]._name == QString("VK_LAYER_KHRONOS_validation")) {
+    for (std::size_t i = 0, n = _configuration->_overridden_layers.size(); i < n; ++i)
+        if (_configuration->_overridden_layers[i]._name == QString("VK_LAYER_KHRONOS_validation")) {
             validation_layer_index = i;
             break;
         }
@@ -356,11 +356,11 @@ void SettingsTreeManager::khronosPresetChanged(int preset_index) {
     assert(validation_layer_index != -1);
 
     // Reset just specific layer settings
-    for (std::size_t i = 0, n = _configuration->_layers[validation_layer_index].settings.size(); i < n; ++i) {
+    for (std::size_t i = 0, n = _configuration->_overridden_layers[validation_layer_index].settings.size(); i < n; ++i) {
         LayerSetting& setting = _validation_layer_file->settings[i];
 
         if (setting.name == QString("disables") || setting.name == QString("enables"))
-            setting.value = preset_configuration->_layers[0].settings[i].value;
+            setting.value = preset_configuration->_overridden_layers[0].settings[i].value;
     }
 
     delete preset_configuration;  // Delete the pattern
@@ -390,8 +390,8 @@ void SettingsTreeManager::khronosPresetChanged(int preset_index) {
 // (and that we need to save the settings)
 void SettingsTreeManager::khronosPresetEdited() {
     _validation_presets_combo_box->blockSignals(true);
-    _validation_presets_combo_box->setCurrentIndex(ValidationPresetUserDefined);
-    _configuration->_preset = ValidationPresetUserDefined;
+    _validation_presets_combo_box->setCurrentIndex(VALIDATION_PRESET_USER_DEFINED);
+    _configuration->_preset = VALIDATION_PRESET_USER_DEFINED;
     _validation_presets_combo_box->blockSignals(false);
     profileEdited();
 }

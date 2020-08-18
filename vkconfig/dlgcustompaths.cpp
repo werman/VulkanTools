@@ -49,22 +49,19 @@ void dlgCustomPaths::RepopulateTree() {
     for (int custom_path_index = 0, n = configurator.GetCustomLayersPathSize(); custom_path_index < n; ++custom_path_index) {
         const QString &custom_path = configurator.GetCustomLayersPath(custom_path_index);
 
-        QTreeWidgetItem *pItem = new QTreeWidgetItem();
-        pItem->setText(0, custom_path);
-        ui->treeWidget->addTopLevelItem(pItem);
+        QTreeWidgetItem *item = new QTreeWidgetItem();
+        item->setText(0, custom_path);
+        ui->treeWidget->addTopLevelItem(item);
 
         // Look for layers that are in this folder. If any are found, add them to the tree
-        QVector<Layer *> custom_layers;
+        std::vector<Layer> custom_layers;
         configurator.LoadLayersFromPath(custom_path, custom_layers);
 
         for (int j = 0; j < custom_layers.size(); j++) {
-            QTreeWidgetItem *pChild = new QTreeWidgetItem();
-            pChild->setText(0, custom_layers[j]->_name);
-            pItem->addChild(pChild);
+            QTreeWidgetItem *child = new QTreeWidgetItem();
+            child->setText(0, custom_layers[j]._name);
+            item->addChild(child);
         }
-
-        // Free the dynamic memory, the rest passes out of scope
-        qDeleteAll(custom_layers.begin(), custom_layers.end());
     }
 }
 

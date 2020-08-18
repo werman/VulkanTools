@@ -15,33 +15,39 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #include "configuration.h"
+#include "configurator.h"
 
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
 
-Configuration::Configuration() : _preset(ValidationPresetNone), _all_layers_available(true) {}
+Configuration::Configuration() : _preset(VALIDATION_PRESET_NONE) {}
+
+Layer& Configuration::CreateOverriddenLayer(const Layer& source_layer) {
+    auto new_layer = _overridden_layers.emplace(_overridden_layers.end(), source_layer);
+    return *new_layer;
+}
 
 ///////////////////////////////////////////////////////////
 // Find the layer if it exists.
-bool Configuration::IsLayerAvailable(const QString& layer_name, const QString& full_path) const {
-    for (std::size_t i = 0, n = _layers.size(); i < n; ++i)
-        if (_layers[i]._name == layer_name && _layers[i]._layer_path == full_path) return true;
+bool Configuration::IsOverriddenLayerAvailable(const QString& layer_name, const QString& full_path) const {
+    for (std::size_t i = 0, n = _overridden_layers.size(); i < n; ++i)
+        if (_overridden_layers[i]._name == layer_name && _overridden_layers[i]._layer_path == full_path) return true;
 
     return false;
 }
 
 ///////////////////////////////////////////////////////////
 // Find the layer if it exists. Only care about the name
-Layer* Configuration::FindLayerNamed(const QString& layer_name) {
-    for (std::size_t i = 0, n = _layers.size(); i < n; ++i)
-        if (_layers[i]._name == layer_name) return &_layers[i];
+Layer* Configuration::FindOverriddenLayer(const QString& layer_name) {
+    for (std::size_t i = 0, n = _overridden_layers.size(); i < n; ++i)
+        if (_overridden_layers[i]._name == layer_name) return &_overridden_layers[i];
 
     return nullptr;
 }
@@ -55,13 +61,7 @@ Configuration* Configuration::DuplicateConfiguration() {
     duplicate->_description = _description;
     duplicate->_excluded_layers = _excluded_layers;
     duplicate->_preset = _preset;
-    duplicate->_all_layers_available = _all_layers_available;
-    // Do not copy ->bFixedProfile
-
-    for (int i = 0; i < _layers.size(); i++) {
-        duplicate->_layers.push_back(_layers[i]);
-    }
-
+    duplicate->_overridden_layers = _overridden_layers;
     return duplicate;
 }
 
@@ -72,22 +72,38 @@ void Configuration::CollapseConfiguration() {
     _excluded_layers.clear();
 
     std::vector<Layer> collapsed_layers;
-    collapsed_layers.reserve(_layers.size()); // Do a single memory allocation
+    collapsed_layers.reserve(_overridden_layers.size());  // Do a single memory allocation
 
     int new_rank = 0;
-    for (std::size_t i = 0, n = _layers.size(); i < n; ++i) {
-        switch (_layers[i]._layer_state) {
+    for (std::size_t i = 0, n = _overridden_layers.size(); i < n; ++i) {
+        switch (_overridden_layers[i].state) {
             case LAYER_STATE_EXCLUDED:
-                _excluded_layers << _layers[i]._name;
+                _excluded_layers << _overridden_layers[i]._name;
                 break;
             case LAYER_STATE_OVERRIDDEN:
-                _layers[i]._rank = new_rank++;
-                collapsed_layers.push_back(_layers[i]);
+                _overridden_layers[i]._rank = new_rank++;
+                collapsed_layers.push_back(_overridden_layers[i]);
                 break;
             case LAYER_STATE_APPLICATION_CONTROLLED:
                 break;
         }
     }
 
-    _layers = collapsed_layers;
+    _overridden_layers = collapsed_layers;
+}
+
+bool Configuration::IsValid() const {
+    Configurator& configurator = Configurator::Get();
+
+    if (_excluded_layers.empty() && _overridden_layers.empty()) return false;
+
+    for (std::size_t i = 0, n = _overridden_layers.size(); i < n; ++i) {
+        if (configurator.FindLayer(_overridden_layers[i]._name) == nullptr) return false;
+    }
+
+    for (std::size_t i = 0, n = _excluded_layers.size(); i < n; ++i) {
+        if (configurator.FindLayer(_excluded_layers[i]) == nullptr) return false;
+    }
+
+    return true;
 }

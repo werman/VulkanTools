@@ -27,7 +27,12 @@ else()
 
     source_group("Docs Files" FILES ${FILES_DOCS})
 
-    set(FILES_ALL ${FILES_RESSOURCE} ${FILES_UI} ${FILES_SOURCE} ${FILES_HEADER} ${FILES_DOCS} resources.qrc)
+    file(GLOB FILES_SOURCE_TEST ./test/*.cpp)
+    file(GLOB FILES_HEADER_TEST ./test/*.h)
+
+    source_group("Test Files" FILES ${FILES_SOURCE_TEST} ${FILES_HEADER_TEST})
+
+    set(FILES_ALL ${FILES_RESSOURCE} ${FILES_UI} ${FILES_SOURCE} ${FILES_HEADER} ${FILES_SOURCE_TEST} ${FILES_HEADER_TEST} ${FILES_DOCS} resources.qrc)
 
     add_definitions(-DQT_NO_DEBUG_OUTPUT)
     add_definitions(-DQT_NO_WARNING_OUTPUT)

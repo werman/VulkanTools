@@ -23,7 +23,8 @@
  * platforms.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #pragma once

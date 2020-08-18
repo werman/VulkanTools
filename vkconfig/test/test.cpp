@@ -21,22 +21,16 @@
 
 #pragma once
 
-#include <QDialog>
+int test_version();
+int test_layer();
+int test_configuration();
 
-namespace Ui {
-class dlgAbout;
+int run_test() {
+    int error = 0;
+
+    error += test_version();
+    error += test_layer();
+    error += test_configuration();
+
+    return error;
 }
-
-class dlgAbout : public QDialog {
-    Q_OBJECT
-
-   public Q_SLOTS:
-    void aboutQt();
-
-   public:
-    explicit dlgAbout(QWidget *parent = nullptr);
-    ~dlgAbout();
-
-   private:
-    Ui::dlgAbout *ui;
-};

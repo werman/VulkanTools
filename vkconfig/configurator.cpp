@@ -15,9 +15,9 @@
  * limitations under the License.
  *
  * Authors:
- * - Lenny Komow <lenny@lunarg.com>
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Lenny Komow
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #include "version.h"
@@ -84,26 +84,25 @@ struct DefaultConfiguration {
 };
 
 static const DefaultConfiguration default_configurations[] = {
-    {"Validation - Standard", "VK_LAYER_KHRONOS_validation", Version("1.0.0"), "Standard", ValidationPresetStandard},
-    {"Validation - GPU-Assisted", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "GPU-Assisted",
-     ValidationPresetGPUAssisted},
+    {"Validation - Standard", "VK_LAYER_KHRONOS_validation", Version("1.0.0"), "Standard", VALIDATION_PRESET_STANDARD},
+    {"Validation - GPU-Assisted", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "GPU-Assisted", VALIDATION_PRESET_GPU_ASSISTED},
     {"Validation - Shader Printf", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "Shader Printf",
-     ValidationPresetShaderPrintf},
+     VALIDATION_PRESET_SHADER_PRINTF},
     {"Validation - Reduced-Overhead", "VK_LAYER_KHRONOS_validation", Version("1.0.0"), "Reduced-Overhead",
-     ValidationPresetReducedOverhead},
+     VALIDATION_PRESET_REDUCED_OVERHEAD},
     {"Validation - Best Practices", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "Best Practices",
-     ValidationPresetBestPractices},
+     VALIDATION_PRESET_BEST_PRACTICES},
     {"Validation - Synchronization (Alpha)", "VK_LAYER_KHRONOS_validation", Version("1.2.147"), "Synchronization (Alpha)",
-     ValidationPresetSynchronization},
+     VALIDATION_PRESET_SYNCHRONIZATION},
 #ifndef __APPLE__
-    {"Frame Capture - First two frames", "VK_LAYER_LUNARG_gfxreconstruct", Version("1.2.147"), "", ValidationPresetNone},
+    {"Frame Capture - First two frames", "VK_LAYER_LUNARG_gfxreconstruct", Version("1.2.147"), "", VALIDATION_PRESET_NONE},
     {"Frame Capture - Range (F10 to start and to stop)", "VK_LAYER_LUNARG_gfxreconstruct", Version("1.2.147"), "",
-     ValidationPresetNone},
+     VALIDATION_PRESET_NONE},
 #endif
-    {"API dump", "VK_LAYER_LUNARG_api_dump", Version("1.1.126"), "", ValidationPresetNone}};
+    {"API dump", "VK_LAYER_LUNARG_api_dump", Version("1.1.126"), "", VALIDATION_PRESET_NONE}};
 
 static const DefaultConfiguration *FindDefaultConfiguration(ValidationPreset preset) {
-    assert(preset >= ValidationPresetFirst && preset <= ValidationPresetLast);
+    assert(preset >= VALIDATION_PRESET_FIRST && preset <= VALIDATION_PRESET_LAST);
 
     for (std::size_t i = 0, n = countof(default_configurations); i < n; ++i) {
         if (default_configurations[i].preset != preset) continue;
@@ -115,7 +114,7 @@ static const DefaultConfiguration *FindDefaultConfiguration(ValidationPreset pre
 
 const char *Configurator::GetValidationPresetName(ValidationPreset preset) const {
     // 0 is user defined, there is no file for that
-    assert(preset > ValidationPresetUserDefined);
+    assert(preset > VALIDATION_PRESET_USER_DEFINED);
 
     const DefaultConfiguration *configuration = FindDefaultConfiguration(preset);
     if (configuration) return configuration->name;
@@ -160,11 +159,8 @@ Configurator &Configurator::Get() {
 }
 
 Configurator::Configurator()
-    : _has_old_loader(false),
-      _first_run(true),
-      _override_application_list_updated(false),
-      _active_configuration(nullptr) {
-    _available_Layers.reserve(10);
+    : _has_old_loader(false), _first_run(true), _override_application_list_updated(false), _active_configuration(nullptr) {
+    _available_layers.reserve(10);
 
 #if defined(_WIN32) && QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
     // Handling of versions compatibility
@@ -308,7 +304,7 @@ bool Configurator::InitializeConfigurator(void) {
     LoadAllInstalledLayers();
 
     // If no layers are found, give the user another chance to add some custom paths
-    if (_available_Layers.empty()) {
+    if (_available_layers.empty()) {
         QMessageBox alert;
         alert.setText(
             "No Vulkan Layers were found in standard paths or in the SDK path. Vulkan Layers are required in order to use Vulkan "
@@ -325,7 +321,7 @@ bool Configurator::InitializeConfigurator(void) {
         LoadAllInstalledLayers();
     }
 
-    if (_available_Layers.empty()) {
+    if (_available_layers.empty()) {
         QMessageBox alert;
         alert.setText("Could not initialize Vulkan Configurator.");
         alert.setWindowTitle(VKCONFIG_NAME);
@@ -344,11 +340,9 @@ bool Configurator::InitializeConfigurator(void) {
     return true;
 }
 
-Configurator::~Configurator() {
-    ClearLayerLists();
-}
+Configurator::~Configurator() { ClearLayerLists(); }
 
-bool Configurator::HasLayers() const { return !_available_Layers.empty(); }
+bool Configurator::HasLayers() const { return !_available_layers.empty(); }
 
 QString Configurator::CheckVulkanSetup() const {
     QString log;
@@ -493,15 +487,12 @@ QString Configurator::CheckVulkanSetup() const {
     return log;
 }
 
-void Configurator::ClearLayerLists() {
-    qDeleteAll(_available_Layers.begin(), _available_Layers.end());
-    _available_Layers.clear();
-}
+void Configurator::ClearLayerLists() { _available_layers.clear(); }
 
 #ifdef _WIN32
 ///////////////////////////////////////////////////////////////////////
 /// Look for device specific layers
-void Configurator::LoadDeviceRegistry(DEVINST id, const QString &entry, QVector<Layer *> &layerList, LayerType type) {
+void Configurator::LoadDeviceRegistry(DEVINST id, const QString &entry, std::vector<Layer> &layers, LayerType type) {
     HKEY key;
     if (CM_Open_DevNode_Key(id, KEY_QUERY_VALUE, 0, RegDisposition_OpenExisting, &key, CM_REGISTRY_SOFTWARE) != CR_SUCCESS) return;
 
@@ -521,8 +512,10 @@ void Configurator::LoadDeviceRegistry(DEVINST id, const QString &entry, QVector<
 
     if (data_type == REG_SZ || data_type == REG_MULTI_SZ) {
         for (wchar_t *curr_filename = path; curr_filename[0] != '\0'; curr_filename += wcslen(curr_filename) + 1) {
-            Layer *pLayerFile = new Layer();
-            if (pLayerFile->ReadLayerFile(QString::fromWCharArray(curr_filename), type)) layerList.push_back(pLayerFile);
+            Layer layer(type);
+            if (layer.Load(QString::fromWCharArray(curr_filename))) {
+                layers.push_back(layer);
+            }
             if (data_type == REG_SZ) {
                 break;
             }
@@ -536,7 +529,7 @@ void Configurator::LoadDeviceRegistry(DEVINST id, const QString &entry, QVector<
 ////////////////////////////////////////////////////////////////
 /// This is for Windows only. It looks for device specific layers in
 /// the Windows registry.
-void Configurator::LoadRegistryLayers(const QString &path, QVector<Layer *> &layerList, LayerType type) {
+void Configurator::LoadRegistryLayers(const QString &path, std::vector<Layer> &layers, LayerType type) {
     QString root_string = path.section('\\', 0, 0);
     static QHash<QString, HKEY> root_keys = {
         {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
@@ -584,7 +577,7 @@ void Configurator::LoadRegistryLayers(const QString &path, QVector<Layer *> &lay
             if (CM_Locate_DevNodeW(&device_id, device_name, CM_LOCATE_DEVNODE_NORMAL) != CR_SUCCESS) {
                 continue;
             }
-            LoadDeviceRegistry(device_id, entry, layerList, type);
+            LoadDeviceRegistry(device_id, entry, layers, type);
 
             DEVINST child_id;
             if (CM_Get_Child(&child_id, device_id, 0) != CR_SUCCESS) {
@@ -601,7 +594,7 @@ void Configurator::LoadRegistryLayers(const QString &path, QVector<Layer *> &lay
                     continue;
                 }
                 if (wcscmp(child_guid, (LPCWSTR)SOFTWARE_COMPONENT_GUID.utf16()) == 0) {
-                    LoadDeviceRegistry(child_id, entry, layerList, type);
+                    LoadDeviceRegistry(child_id, entry, layers, type);
                     break;
                 }
             } while (CM_Get_Sibling(&child_id, child_id, 0) == CR_SUCCESS);
@@ -967,19 +960,19 @@ void Configurator::LoadAllInstalledLayers() {
     // FIRST: If VK_LAYER_PATH is set it has precedence over other layers.
     int lp = VK_LAYER_PATH.count();
     if (lp != 0)
-        for (int i = 0; i < lp; i++) LoadLayersFromPath(VK_LAYER_PATH[i], _available_Layers);
+        for (int i = 0; i < lp; i++) LoadLayersFromPath(VK_LAYER_PATH[i], _available_layers);
 
     // SECOND: Any custom paths? Search for those too
-    for (int i = 0; i < _custom_layers_paths.size(); i++) LoadLayersFromPath(_custom_layers_paths[i], _available_Layers);
+    for (int i = 0; i < _custom_layers_paths.size(); i++) LoadLayersFromPath(_custom_layers_paths[i], _available_layers);
 
     // THIRD: Standard layer paths, in standard locations. The above has always taken precedence.
-    for (std::size_t i = 0, n = countof(szSearchPaths); i < n; i++) LoadLayersFromPath(szSearchPaths[i], _available_Layers);
+    for (std::size_t i = 0, n = countof(szSearchPaths); i < n; i++) LoadLayersFromPath(szSearchPaths[i], _available_layers);
 
     // FOURTH: Finally, see if thee is anyting in the VULKAN_SDK path that wasn't already found elsewhere
     QString vulkanSDK = qgetenv("VULKAN_SDK");
     if (!vulkanSDK.isEmpty()) {
         vulkanSDK += "/etc/vulkan/explicit_layer.d";
-        LoadLayersFromPath(vulkanSDK, _available_Layers);
+        LoadLayersFromPath(vulkanSDK, _available_layers);
     }
 }
 
@@ -988,7 +981,7 @@ void Configurator::LoadAllInstalledLayers() {
 /// load the default settings for each layer. This is just a master list of
 /// layers found. Do NOT load duplicate layer names. The type of layer (explicit or implicit) is
 /// determined from the path name.
-void Configurator::LoadLayersFromPath(const QString &path, QVector<Layer *> &layer_list) {
+void Configurator::LoadLayersFromPath(const QString &path, std::vector<Layer> &layers) {
     // On Windows custom files are in the file system. On non Windows all layers are
     // searched this way
     LayerType type = LAYER_TYPE_CUSTOM;
@@ -998,7 +991,7 @@ void Configurator::LoadLayersFromPath(const QString &path, QVector<Layer *> &lay
 
 #ifdef _WIN32
     if (path.contains("...")) {
-        LoadRegistryLayers(path, layer_list, type);
+        LoadRegistryLayers(path, layers, type);
         return;
     }
 
@@ -1019,26 +1012,16 @@ void Configurator::LoadLayersFromPath(const QString &path, QVector<Layer *> &lay
     // We have a list of layer files. Add to the list as long as the layer name has
     // not already been added.
     for (int file_index = 0; file_index < file_list.FileCount(); file_index++) {
-        Layer *layer_file = new Layer();
-        if (layer_file->ReadLayerFile(file_list.GetFileName(file_index), type)) {
+        Layer layer(type);
+        if (layer.Load(file_list.GetFileName(file_index))) {
             // Do not load VK_LAYER_LUNARG_override
-            for (int i = 0; i < layer_list.size(); i++)
-                if (QString("VK_LAYER_LUNARG_override") == layer_file->_name) {
-                    delete layer_file;
-                    layer_file = nullptr;
-                    break;
-                }
-
-            if (layer_file == nullptr) continue;
+            if (layer._name == QString("VK_LAYER_LUNARG_override")) continue;
 
             // Make sure this layer name has not already been added
-            if (FindLayerNamed(layer_file->_name)) {
-                delete layer_file;
-                continue;
-            }
+            if (FindLayer(layer._name)) continue;
 
             // Good to go, add the layer
-            layer_list.push_back(layer_file);
+            layers.push_back(layer);
         }
     }
 }
@@ -1180,12 +1163,12 @@ void Configurator::LoadDefaultLayerSettings() {
 /// To do a full match, not only the layer name, but the layer path/location
 /// must also be a match. It IS possible to have two layers with the same name
 /// as long as they are in different locations.
-const Layer *Configurator::FindLayerNamed(QString layer_name) {
-    for (int i = 0; i < _available_Layers.size(); ++i) {
-        const Layer *layer_file = _available_Layers[i];
+const Layer *Configurator::FindLayer(QString layer_name) {
+    for (int i = 0; i < _available_layers.size(); ++i) {
+        const Layer &layer = _available_layers[i];
 
-        if (!(layer_name == layer_file->_name)) continue;
-        return layer_file;
+        if (!(layer_name == layer._name)) continue;
+        return &layer;
     }
 
     return nullptr;
@@ -1230,7 +1213,6 @@ Configuration *Configurator::LoadConfiguration(const QString &path_to_configurat
     QJsonArray excluded_array = excluded_value.toArray();
     for (int i = 0; i < excluded_array.size(); i++) {
         configuration->_excluded_layers << excluded_array[i].toString();
-        if (!FindLayerNamed(configuration->_excluded_layers[i])) configuration->_all_layers_available = false;
     }
 
     QJsonValue preset_index = configuration_entry_object.value("preset");
@@ -1247,42 +1229,37 @@ Configuration *Configurator::LoadConfiguration(const QString &path_to_configurat
     QJsonObject layer_objects = options_value.toObject();
     QStringList layer_list = layer_objects.keys();
 
-    // Build the list of layers with their settings. If both the layers and
-    // the blacklist are emtpy, then automatic fail
-    if (layer_list.length() == 0 && configuration->_excluded_layers.length() == 0) configuration->_all_layers_available = false;
-
     for (int layer_index = 0; layer_index < layer_list.length(); layer_index++) {
-        const Layer *layer_file = nullptr;
+        const Layer *layer = nullptr;
         QJsonValue layer_value = layer_objects.value(layer_list[layer_index]);
         QJsonObject layer_object = layer_value.toObject();
 
         // To match the layer we just need the name, paths are not
         // hard-matched to the configuration.
         // Find this in our lookup of layers. The standard layers are listed first
-        layer_file = FindLayerNamed(layer_list[layer_index]);
-        if (layer_file == nullptr) {  // If not found, we have a layer missing....
-            configuration->_all_layers_available = false;
+        layer = FindLayer(layer_list[layer_index]);
+        if (layer == nullptr) {  // If not found, we have a layer missing....
             continue;
         }
 
         // Add a copy of this layer
-        auto layer_copy = configuration->_layers.emplace(configuration->_layers.end(), *layer_file);
+        Layer &layer_copy = configuration->CreateOverriddenLayer(*layer);
 
         QJsonValue layerRank = layer_object.value("layer_rank");
-        layer_copy->_rank = layerRank.toInt();
-        layer_copy->_layer_state = LAYER_STATE_OVERRIDDEN;  // Always because it's present in the file
+        layer_copy._rank = layerRank.toInt();
+        layer_copy.state = LAYER_STATE_OVERRIDDEN;  // Always because it's present in the file
 
         // Load the layer
-        Layer::LoadSettingsFromJson(layer_object, layer_copy->settings);
+        Layer::LoadSettingsFromJson(layer_object, layer_copy.settings);
     }
 
     // We need to sort the layers by their rank. The json sorts alphebetically and we
     // need to undo it.... A bubble quick sort is fine, it's a small list
-    if (configuration->_layers.size() > 1) {
-        for (int i = 0; i < configuration->_layers.size() - 1; i++) {
-            for (int j = i + 1; j < configuration->_layers.size(); j++) {
-                if (configuration->_layers[i]._rank > configuration->_layers[j]._rank) {
-                    std::swap(configuration->_layers[i], configuration->_layers[j]);
+    if (configuration->_overridden_layers.size() > 1) {
+        for (int i = 0; i < configuration->_overridden_layers.size() - 1; i++) {
+            for (int j = i + 1; j < configuration->_overridden_layers.size(); j++) {
+                if (configuration->_overridden_layers[i]._rank > configuration->_overridden_layers[j]._rank) {
+                    std::swap(configuration->_overridden_layers[i], configuration->_overridden_layers[j]);
                 }
             }
         }
@@ -1301,8 +1278,8 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
 
     QJsonObject layer_list;  // This list of layers
 
-    for (int layer_index = 0; layer_index < configuration->_layers.size(); layer_index++) {
-        Layer *layer = &configuration->_layers[layer_index];
+    for (int layer_index = 0; layer_index < configuration->_overridden_layers.size(); layer_index++) {
+        Layer *layer = &configuration->_overridden_layers[layer_index];
 
         QJsonObject json_settings;
 
@@ -1312,64 +1289,39 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
         // Loop through the actual settings
         for (int setting_index = 0; setting_index < layer->settings.size(); setting_index++) {
             QJsonObject setting;
-            const LayerSetting& layer_settings = layer->settings[setting_index];
+            const LayerSetting &layer_settings = layer->settings[setting_index];
 
             setting.insert("name", layer_settings.label);
             setting.insert("description", layer_settings.description);
 
             switch (layer_settings.type) {
                 case SETTING_STRING:
-                    setting.insert("type", "string");
-                    setting.insert("default", layer_settings.value);
-                    break;
-
                 case SETTING_SAVE_FILE:
-                    setting.insert("type", "save_file");
-                    setting.insert("default", layer_settings.value);
-                    break;
-
                 case SETTING_LOAD_FILE:
-                    setting.insert("type", "load_file");
-                    setting.insert("default", layer_settings.value);
-                    break;
-
                 case SETTING_SAVE_FOLDER:
-                    setting.insert("type", "save_folder");
-                    setting.insert("default", layer_settings.value);
-                    break;
-
                 case SETTING_BOOL:
-                    setting.insert("type", "bool");
-                    setting.insert("default", layer_settings.value);
-                    break;
-
                 case SETTING_BOOL_NUMERIC:
-                    setting.insert("type", "bool_numeric");
+                case SETTING_RANGE_INT:
+                case SETTING_VUID_FILTER:{
+                    setting.insert("type", GetSettingTypeLabel(layer_settings.type));
                     setting.insert("default", layer_settings.value);
-                    break;
-
-                case SETTING_VUID_FILTER:
-                    setting.insert("type", "vuid_exclude");
-                    setting.insert("default", layer_settings.value);
-                    break;
+                } break;
 
                 case SETTING_EXCLUSIVE_LIST: {
-                    setting.insert("type", "enum");
+                    setting.insert("type", GetSettingTypeLabel(layer_settings.type));
                     setting.insert("default", layer_settings.value);
 
                     QJsonObject options;
                     for (int i = 0; i < layer_settings.exclusive_label.size(); i++)
-                        options.insert(layer_settings.exclusive_values[i],
-                                       layer_settings.exclusive_label[i]);
+                        options.insert(layer_settings.exclusive_values[i], layer_settings.exclusive_label[i]);
                     setting.insert("options", options);
                 } break;
 
                 case SETTING_INCLUSIVE_LIST: {
-                    setting.insert("type", "multi_enum");
+                    setting.insert("type", GetSettingTypeLabel(layer_settings.type));
                     QJsonObject options;
                     for (int i = 0; i < layer_settings.inclusive_labels.size(); i++)
-                        options.insert(layer_settings.inclusive_values[i],
-                                       layer_settings.inclusive_labels[i]);
+                        options.insert(layer_settings.inclusive_values[i], layer_settings.inclusive_labels[i]);
                     setting.insert("options", options);
 
                     QJsonArray defaults;
@@ -1380,17 +1332,6 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
 
                     setting.insert("default", defaults);
                 } break;
-
-                // There is a string field that is actually a complicted series of number or
-                // ranges of numbers. We should at some point add this to allow more error free editing of it.
-                case SETTING_RANGE_INT:
-
-                    break;
-
-                // We missed somethhing
-                default:
-                    setting.insert("type", "unknown type");
-                    setting.insert("default", "unknown data");
             }
 
             json_settings.insert(layer_settings.name, setting);
@@ -1441,24 +1382,25 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
 Configuration *Configurator::CreateEmptyConfiguration() {
     Configuration *new_configuration = new Configuration();
 
-    int nRank = 0;
+    int rank = 0;
 
     // Add layers
-    for (int i = 0; i < _available_Layers.size(); i++) {
-        Layer temp_layer(*_available_Layers[i]);
-        temp_layer._rank = nRank++;
-        new_configuration->_layers.push_back(temp_layer);
+    for (int i = 0; i < _available_layers.size(); i++) {
+        Layer temp_layer(_available_layers[i]);
+        temp_layer._rank = rank++;
+        new_configuration->_overridden_layers.push_back(temp_layer);
     }
 
     // Now grab settings defaults
-    for (int i = 0; i < new_configuration->_layers.size(); i++) LoadDefaultSettings(new_configuration->_layers[i]);
+    for (int i = 0; i < new_configuration->_overridden_layers.size(); i++)
+        LoadDefaultSettings(new_configuration->_overridden_layers[i]);
 
     return new_configuration;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 /// Load the default settings into an empty layer file container
-void Configurator::LoadDefaultSettings(Layer& blank_layer) {
+void Configurator::LoadDefaultSettings(Layer &blank_layer) {
     assert(&blank_layer);
 
     const LayerSettingsDefaults *layer_settings_defaults = FindLayerSettings(blank_layer._name);
@@ -1509,8 +1451,8 @@ void Configurator::SetActiveConfiguration(Configuration *configuration) {
     QTextStream stream(&file);
 
     // Loop through all the layers
-    for (int layer_index = 0; layer_index < configuration->_layers.size(); layer_index++) {
-        const Layer& layer = configuration->_layers[layer_index];
+    for (int layer_index = 0; layer_index < configuration->_overridden_layers.size(); layer_index++) {
+        const Layer &layer = configuration->_overridden_layers[layer_index];
         stream << endl;
         stream << "# " << layer._name << endl;
 
@@ -1519,7 +1461,7 @@ void Configurator::SetActiveConfiguration(Configuration *configuration) {
         QString lc_layer_name = short_layer_name.toLower();
 
         for (int setting_index = 0; setting_index < layer.settings.size(); setting_index++) {
-            const LayerSetting& layer_settings = layer.settings[setting_index];
+            const LayerSetting &layer_settings = layer.settings[setting_index];
             stream << lc_layer_name << "." << layer_settings.name << " = " << layer_settings.value << endl;
 
             // Temporary hack due to a gfxrecontruct bug for 2020 July SDK only. Remove after that release.
@@ -1543,9 +1485,9 @@ void Configurator::SetActiveConfiguration(Configuration *configuration) {
     // layer paths go in here.
     QStringList layer_override_paths;
 
-    for (int i = 0; i < configuration->_layers.size(); i++) {
+    for (int i = 0; i < configuration->_overridden_layers.size(); i++) {
         // Extract just the path
-        QFileInfo file(configuration->_layers[i]._layer_path);
+        QFileInfo file(configuration->_overridden_layers[i]._layer_path);
         QString qsPath = QDir().toNativeSeparators(file.absolutePath());
 
         // Make sure the path is not already in the list
@@ -1559,10 +1501,11 @@ void Configurator::SetActiveConfiguration(Configuration *configuration) {
     for (int i = 0; i < layer_override_paths.count(); i++) json_paths.append(QDir::toNativeSeparators(layer_override_paths[i]));
 
     QJsonArray json_layers;
-    for (int i = 0; i < configuration->_layers.size(); i++) json_layers.append(configuration->_layers[i]._name);
+    for (int i = 0; i < configuration->_overridden_layers.size(); i++)
+        json_layers.append(configuration->_overridden_layers[i]._name);
 
     QJsonArray json_excluded_layer_list;
-    for (int i = 0; i < configuration->_excluded_layers.size(); i++)
+    for (int i = 0, n = configuration->_excluded_layers.size(); i < n; i++)
         json_excluded_layer_list.append(configuration->_excluded_layers[i]);
 
     // Only supply this list if an app list is specified

@@ -19,24 +19,6 @@
  * - Christophe Riccio
  */
 
-#pragma once
-
-#include <QDialog>
-
-namespace Ui {
-class dlgAbout;
+int test_configuration() {
+    return 0;
 }
-
-class dlgAbout : public QDialog {
-    Q_OBJECT
-
-   public Q_SLOTS:
-    void aboutQt();
-
-   public:
-    explicit dlgAbout(QWidget *parent = nullptr);
-    ~dlgAbout();
-
-   private:
-    Ui::dlgAbout *ui;
-};

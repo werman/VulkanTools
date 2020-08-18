@@ -15,8 +15,8 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #include "mainwindow.h"
@@ -191,7 +191,9 @@ void MainWindow::LoadConfigurationList() {
         item->radio_button->setToolTip(item->configuration->_description);
         item->radio_button->setText(item->configuration->_name);
 
-        if (!item->configuration->IsValid()) {
+        const bool is_valid_configuration = item->configuration->IsValid();
+
+        if (!is_valid_configuration) {
             item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
             item->radio_button->setEnabled(false);
             item->radio_button->setChecked(false);
@@ -204,7 +206,7 @@ void MainWindow::LoadConfigurationList() {
         // if you make a current config invalid and come back in... it can't be active any
         // longer
         if (active_configuration_name == item->configuration->_name) {
-            if (item->configuration->IsValid())
+            if (is_valid_configuration)
                 item->radio_button->setChecked(true);
             else
                 configurator.SetActiveConfiguration(nullptr);
@@ -870,7 +872,7 @@ void MainWindow::ChangeActiveConfiguration(Configuration *configuration) {
         setWindowTitle(name + " <VULKAN APPLICATION CONTROLLED>");
     } else {
         configurator.SetActiveConfiguration(configuration);
-        
+
         const QString configuration_name = configuration->IsValid() ? configuration->_name : configuration->_name + " (DISABLED)";
         setWindowTitle(configuration_name + " - " + name + " <VULKAN APPLICATIONS OVERRIDDEN>");
     }

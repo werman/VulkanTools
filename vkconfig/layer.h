@@ -25,7 +25,8 @@
 
 #pragma once
 
-#include <vector>
+#include "layer_type.h"
+#include "layer_setting.h"
 
 #include <QObject>
 #include <QJsonDocument>
@@ -34,38 +35,8 @@
 #include <QJsonArray>
 #include <QString>
 #include <QVector>
-#include <QVariant>
 
-enum LayerType { LAYER_TYPE_EXPLICIT = 0, LAYER_TYPE_IMPLICIT, LAYER_TYPE_CUSTOM };
-
-enum SettingType {
-    SETTING_STRING = 0,
-    SETTING_SAVE_FILE,
-    SETTING_LOAD_FILE,
-    SETTING_SAVE_FOLDER,
-    SETTING_BOOL,
-    SETTING_BOOL_NUMERIC,
-    SETTING_EXCLUSIVE_LIST,
-    SETTING_INCLUSIVE_LIST,
-    SETTING_RANGE_INT,
-    SETTING_VUID_FILTER,
-};
-
-// This structure is copied by assignment elsewhere, so do not add
-// any pointers to it please...
-struct LayerSetting {
-    QString name;                  // Name of the setting the layer looks for (programatic variable name)
-    QString label;                 // Short name to prompt end user
-    QString description;           // Human version, describes the setting
-    SettingType type;              // The data type
-    QVariant max_value;            // For range based
-    QVariant min_value;            // For range based
-    QStringList exclusive_values;  // List of exclusive items
-    QStringList exclusive_label;   // List of exclusive item prompts
-    QStringList inclusive_values;  // List of non-exclusive items (more than one item can be selected)
-    QStringList inclusive_labels;  // List of non-exclusive item prompts (more than one item can be selected)
-    QString value;                 // Default value as a string
-};
+#include <vector>
 
 // The value of this enum can't be changed
 enum LayerState {
@@ -74,10 +45,22 @@ enum LayerState {
     LAYER_STATE_EXCLUDED = 2                 // Force off/exclude this layer regarless of the Vulkan application
 };
 
-void RemoveString(QString& delimitedString, QString value);
-void AddString(QString& delimitedString, QString value);
+void RemoveString(QString& delimited_string, QString value);
+void AddString(QString& delimited_string, QString value);
 
 class Layer {
+   public:
+    Layer(LayerType type);
+    Layer(LayerType type, QString full_path_to_file);
+
+    // File based layers
+    bool Load(QString full_path_to_file);
+
+    // Utility, may move outside this class....
+    static void LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, std::vector<LayerSetting>& layers);
+
+    LayerType type;
+
    public:
     // Standard pieces of a layer
     QString _file_format_version;
@@ -89,22 +72,16 @@ class Layer {
     QString _description;
 
     QString _layer_path;  // Actual path to the folder that contains the layer (this is important!)
-    LayerType _layer_type;
 
     // This layers settings. This will be used to build the editor
     // as well as create settings files. This CAN be empty if the
     // layer doens't have any settings.
     std::vector<LayerSetting> settings;
 
-    LayerState _layer_state;
-    std::size_t _rank;  // When used in a profile, what is the rank? (0 being first layer)
+    LayerState state;
+    std::size_t _rank;  // When used in a configuration, what is the rank? (0 being first layer)
 
-   public:
-    Layer();
-
-    // File based layers
-    bool ReadLayerFile(QString full_path_to_file, LayerType layer_type);
-
-    // Utility, may move outside this class....
-    static void LoadSettingsFromJson(const QJsonObject& layer_settings_descriptors, std::vector<LayerSetting>& layers);
+   private:
 };
+
+int test_layer();

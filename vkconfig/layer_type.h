@@ -14,11 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * The vkConfig2 program monitors and adjusts the Vulkan configuration
+ * environment. These settings are wrapped in this class, which serves
+ * as the "model" of the system.
+ *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #pragma once
 
-int test();
+enum LayerType { // Enum value can't be changed
+    LAYER_TYPE_EXPLICIT = 0, 
+    LAYER_TYPE_IMPLICIT, 
+    LAYER_TYPE_CUSTOM,
+
+    LAYER_TYPE_FIRST = LAYER_TYPE_EXPLICIT,
+    LAYER_TYPE_LAST = LAYER_TYPE_CUSTOM
+};
+
+enum { LAYER_TYPE_COUNT = LAYER_TYPE_LAST - LAYER_TYPE_FIRST + 1 };
+
+const char* GetLayerTypeLabel(LayerType type);
