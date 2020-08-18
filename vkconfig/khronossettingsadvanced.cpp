@@ -19,8 +19,10 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
-#include "vku.h"
+#include "util.h"
+#include "version.h"
 #include "khronossettingsadvanced.h"
+
 #include <QSettings>
 #include <QMessageBox>
 #include <QCheckBox>
@@ -134,7 +136,7 @@ static TreeSettings syncChecks[] = {{"Synchronization Checks", "VK_VALIDATION_FE
 QString GetSettingDetails(QString qsSetting, QString &url) {
     QString retString = "";
 
-    for (std::size_t i = 0, n = vku::countof(lookup_table); i < n; i++) {
+    for (std::size_t i = 0, n = countof(lookup_table); i < n; i++) {
         if (qsSetting == lookup_table[i].setting) {
             url = lookup_table[i].url;
             retString = lookup_table[i].description;
@@ -183,7 +185,7 @@ KhronosSettingsAdvanced::KhronosSettingsAdvanced(QTreeWidget *main_tree, QTreeWi
     parent->addChild(_core_checks_parent);
 
     QTreeWidgetItem *core_child_item;
-    for (std::size_t i = 0, n = vku::countof(coreChecks); i < n; i++) {
+    for (std::size_t i = 0, n = countof(coreChecks); i < n; i++) {
         core_child_item = new QTreeWidgetItem();
         core_child_item->setText(0, coreChecks[i].prompt);
         if (_disables->value.contains(coreChecks[i].token) || core_validation_disabled)
@@ -200,7 +202,7 @@ KhronosSettingsAdvanced::KhronosSettingsAdvanced(QTreeWidget *main_tree, QTreeWi
     ///////////////////////////////////////////////////////////////
     // Miscellaneous disables
     QTreeWidgetItem *item;
-    for (std::size_t i = 0, n = vku::countof(miscDisables); i < n; i++) {
+    for (std::size_t i = 0, n = countof(miscDisables); i < n; i++) {
         item = new QTreeWidgetItem();
         item->setText(0, miscDisables[i].prompt);
         if (_disables->value.contains(miscDisables[i].token))
@@ -326,7 +328,7 @@ void KhronosSettingsAdvanced::itemClicked(QTreeWidgetItem *item, int column) {
         return;
     }
 
-    for (std::size_t i = 0, n = vku::countof(coreChecks); i < n; i++) {
+    for (std::size_t i = 0, n = countof(coreChecks); i < n; i++) {
         if (item == coreChecks[i].item) {
             description = GetSettingDetails(coreChecks[i].token, url);
             if (!description.isEmpty()) {
@@ -337,7 +339,7 @@ void KhronosSettingsAdvanced::itemClicked(QTreeWidgetItem *item, int column) {
     }
 
     // Check for miscellaneous disables
-    for (std::size_t i = 0, n = vku::countof(miscDisables); i < n; i++) {
+    for (std::size_t i = 0, n = countof(miscDisables); i < n; i++) {
         if (item == miscDisables[i].item) {
             description = GetSettingDetails(miscDisables[i].token, url);
             if (!description.isEmpty()) {
@@ -348,7 +350,7 @@ void KhronosSettingsAdvanced::itemClicked(QTreeWidgetItem *item, int column) {
     }
 
     // Best practices
-    for (std::size_t i = 0, n = vku::countof(bestPractices); i < n; i++) {
+    for (std::size_t i = 0, n = countof(bestPractices); i < n; i++) {
         if (item == bestPractices[i].item) {
             description = GetSettingDetails(bestPractices[i].token, url);
             if (!description.isEmpty()) {
@@ -458,7 +460,7 @@ void KhronosSettingsAdvanced::itemChanged(QTreeWidgetItem *item, int nColumn) {
         _shader_based_box->checkState(0) == Qt::Checked, bestPractices[0].item->checkState(0) == Qt::Checked};
 
     int count_enabled_features = 0;
-    for (std::size_t i = 0, n = vku::countof(features_to_run_alone); i < n; ++i)
+    for (std::size_t i = 0, n = countof(features_to_run_alone); i < n; ++i)
         count_enabled_features += features_to_run_alone[i] ? 1 : 0;
 
     if (count_enabled_features > 1) {
@@ -517,24 +519,24 @@ bool KhronosSettingsAdvanced::CollectSettings() {
     // The rest is cake... just reap the controls
 
     // Best practice enables
-    for (std::size_t i = 0, n = vku::countof(bestPractices); i < n; i++)
+    for (std::size_t i = 0, n = countof(bestPractices); i < n; i++)
         if (bestPractices[i].item->checkState(0) == Qt::Checked) AddString(enables, bestPractices[i].token);
 
     // Sync Validation
-    for (std::size_t i = 0, n = vku::countof(syncChecks); i < n; i++)
+    for (std::size_t i = 0, n = countof(syncChecks); i < n; i++)
         if (syncChecks[0].item->checkState(0) == Qt::Checked) AddString(enables, syncChecks[i].token);
 
     ///////////////////////////////////////////////////////
     // Everything else is a disable. Remember, these are backwards
     // because they are exposed to the end user as an enable.
     // If they are NOT checked, we add them to disables
-    for (std::size_t i = 0, n = vku::countof(miscDisables); i < n; i++) {
+    for (std::size_t i = 0, n = countof(miscDisables); i < n; i++) {
         if (miscDisables[i].item->checkState(0) != Qt::Checked) AddString(disables, miscDisables[i].token);
     }
 
     // Core checks. If unchecked, then individual ones might still be checked
     if (_core_checks_parent->checkState(0) == Qt::Checked) {
-        for (std::size_t i = 0, n = vku::countof(coreChecks); i < n; i++)
+        for (std::size_t i = 0, n = countof(coreChecks); i < n; i++)
             if (coreChecks[i].item->checkState(0) == Qt::Unchecked) AddString(disables, coreChecks[i].token);
     } else  // Not checked, turn them all off
         AddString(disables, "VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT");

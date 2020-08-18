@@ -20,7 +20,8 @@
  */
 
 #include "command_line.h"
-#include "vku.h"
+#include "version.h"
+
 #include <string>
 #include <cstdio>
 
@@ -38,7 +39,7 @@ CommandLine::CommandLine(int argc, char* argv[]) : mode(_mode), _mode(ModeExecut
 }
 
 void CommandLine::usage() const {
-    printf("Vulkan Configurator %s\n", vku::Version::header_version.str().c_str());
+    printf("Vulkan Configurator %s\n", Version::header_version.str().c_str());
     printf("\n");
     printf("Usage\n");
     printf("\tvkconfig [options]\n");

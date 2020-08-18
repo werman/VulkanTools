@@ -28,8 +28,7 @@
 #include "dlgcustompaths.h"
 #include "configurator.h"
 #include "preferences.h"
-
-#include "vku.h"
+#include "version.h"
 
 #include "ui_mainwindow.h"
 
@@ -863,7 +862,7 @@ void MainWindow::toolsSetCustomPaths(bool checked) {
 void MainWindow::ChangeActiveConfiguration(Configuration *configuration) {
     Configurator &configurator = Configurator::Get();
 
-    const QString name = QString("Vulkan Configurator ") + vku::Version::header_version.str().c_str();
+    const QString name = QString("Vulkan Configurator ") + Version::header_version.str().c_str();
 
     if (configuration == nullptr || !configurator._override_active) {
         configurator.SetActiveConfiguration(nullptr);

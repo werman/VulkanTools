@@ -21,7 +21,7 @@
 
 #include "configurator.h"
 #include "settingstreemanager.h"
-#include "vku.h"
+#include "version.h"
 
 #include <QComboBox>
 #include <QLineEdit>

@@ -19,29 +19,12 @@
  * - Christophe Riccio <christophe@lunarg.com>
  */
 
-#include "vku.h"
-#include <cstdarg>
+#include "version.h"
+#include "util.h"
+
 #include <cstdio>
 #include <cassert>
-#include <string.h>
-
-namespace vku {
-
-std::string format(const char* message, ...) {
-    std::size_t const STRING_BUFFER(4096);
-
-    assert(message != nullptr);
-    assert(strlen(message) >= 0 && strlen(message) < STRING_BUFFER);
-
-    char buffer[STRING_BUFFER];
-    va_list list;
-
-    va_start(list, message);
-    vsprintf(buffer, message, list);
-    va_end(list);
-
-    return buffer;
-}
+#include <cstring>
 
 const Version Version::header_version(VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE), VK_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
                                       VK_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
@@ -49,8 +32,6 @@ const Version Version::header_version(VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLET
 Version::Version(const char* version) { sscanf(version, "%d.%d.%d", &_vku_major, &_vku_minor, &_vku_patch); }
 
 std::string Version::str() const { return format("%d.%d.%d", _vku_major, _vku_minor, _vku_patch); }
-
-}  // namespace vku
 
 ///////////////////////////////////
 // Tests
@@ -61,8 +42,8 @@ int test_version_string() {
 
     int error = 0;
 
-    error += vku::Version(version_a.c_str()).str() == version_a ? 0 : 1;
-    error += vku::Version(version_b.c_str()).str() == version_b ? 0 : 1;
+    error += Version(version_a.c_str()).str() == version_a ? 0 : 1;
+    error += Version(version_b.c_str()).str() == version_b ? 0 : 1;
 
     return error;
 }
@@ -109,7 +90,7 @@ int test_version_compare() {
     return error;
 }
 
-int test_vku() {
+int test_version() {
     int error = 0;
 
     error += test_version_string();

@@ -15,24 +15,16 @@
  * limitations under the License.
  *
  * Authors:
- * - Richard S. Wright Jr. <richard@lunarg.com>
- * - Christophe Riccio <christophe@lunarg.com>
+ * - Richard S. Wright Jr.
+ * - Christophe Riccio
  */
 
 #pragma once
 
 #include <vulkan/vulkan.h>
+
 #include <cstddef>
 #include <string>
-
-namespace vku {
-
-std::string format(const char *message, ...);
-
-template <typename T, std::size_t N>
-inline constexpr std::size_t countof(T const (&)[N]) noexcept {
-    return N;
-}
 
 struct Version {
     static const Version header_version;
@@ -73,9 +65,7 @@ struct Version {
     int _vku_major, _vku_minor, _vku_patch;
 };
 
-}  // namespace vku
-
 ///////////////////////////////////
 // Tests
 
-int test_vku();
+int test_version();

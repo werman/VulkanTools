@@ -21,12 +21,25 @@
 
 #pragma once
 
-#include "version.h"
+#include "util.h"
 
-int test() {
-    int error = 0;
+#include <cstddef>
+#include <cstring>
+#include <cassert>
+#include <cstdarg>
 
-    error += test_version();
+std::string format(const char* message, ...) {
+    std::size_t const STRING_BUFFER(4096);
 
-    return error;
+    assert(message != nullptr);
+    assert(strlen(message) >= 0 && strlen(message) < STRING_BUFFER);
+
+    char buffer[STRING_BUFFER];
+    va_list list;
+
+    va_start(list, message);
+    vsprintf(buffer, message, list);
+    va_end(list);
+
+    return buffer;
 }
