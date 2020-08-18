@@ -85,7 +85,8 @@ struct DefaultConfiguration {
 
 static const DefaultConfiguration default_configurations[] = {
     {"Validation - Standard", "VK_LAYER_KHRONOS_validation", Version("1.0.0"), "Standard", VALIDATION_PRESET_STANDARD},
-    {"Validation - GPU-Assisted", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "GPU-Assisted", VALIDATION_PRESET_GPU_ASSISTED},
+    {"Validation - GPU-Assisted", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "GPU-Assisted",
+     VALIDATION_PRESET_GPU_ASSISTED},
     {"Validation - Shader Printf", "VK_LAYER_KHRONOS_validation", Version("1.1.126"), "Shader Printf",
      VALIDATION_PRESET_SHADER_PRINTF},
     {"Validation - Reduced-Overhead", "VK_LAYER_KHRONOS_validation", Version("1.0.0"), "Reduced-Overhead",
@@ -1026,6 +1027,42 @@ void Configurator::LoadLayersFromPath(const QString &path, std::vector<Layer> &l
     }
 }
 
+//////////////////////////////////////////////////////////////////////////
+// Populate a tree widget with the custom layer paths and the layers that
+// are being used in them.
+void Configurator::BuildCustomLayerTree(QTreeWidget *tree_widget) {
+    // Populate the tree
+    tree_widget->clear();
+
+    // Building the list is not obvious. Each custom path may have multiple layers and there
+    // could be duplicates, which are not allowed. The layer paths are traversed in order, and
+    // layers are used on a first occurance basis. So we can't just show the layers that are
+    // present in the folder (because they may not be used). We have to list the custom layer paths
+    // and then look for layers that are already loaded that are from that path.
+    for (int custom_path_index = 0, n = GetCustomLayersPathSize(); custom_path_index < n; ++custom_path_index) {
+        // Custom path is the parent tree item
+        const QString &custom_path = QDir::toNativeSeparators(GetCustomLayersPath(custom_path_index));
+
+        QTreeWidgetItem *item = new QTreeWidgetItem();
+        item->setText(0, custom_path);
+        tree_widget->addTopLevelItem(item);
+
+        // Look for layers that are loaded that are also from this folder
+        for (std::size_t i = 0, n = _available_layers.size(); i < n; ++i) {
+            const Layer& candidate = _available_layers[i];
+
+            QFileInfo fileInfo = candidate._layer_path;
+            QString path = QDir::toNativeSeparators(fileInfo.path());
+            if (path != custom_path) continue;
+
+            QTreeWidgetItem *child = new QTreeWidgetItem();
+            child->setText(0, candidate._name);
+            item->addChild(child);
+        }
+        item->setExpanded(true);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /// Find the settings for this named layer. If none found, return nullptr
 const LayerSettingsDefaults *Configurator::FindLayerSettings(const QString &layer_name) const {
@@ -1037,9 +1074,11 @@ const LayerSettingsDefaults *Configurator::FindLayerSettings(const QString &laye
 
 //////////////////////////////////////////////////////////////////////////////
 /// Search the list of loaded profiles and return a pointer
+/// Note that this function is case insensitive since names are derived from file names
 Configuration *Configurator::FindConfiguration(const QString &configuration_name) {
-    for (std::size_t i = 0, n = _available_configurations.size(); i < n; i++)
-        if (_available_configurations[i]._name == configuration_name) return &_available_configurations[i];
+    for (std::size_t i = 0, n = _available_configurations.size(); i < n; ++i)
+        if (configuration_name.compare(_available_configurations[i]._name, Qt::CaseInsensitive) == 0)
+            return &_available_configurations[i];
     return nullptr;
 }
 
@@ -1302,7 +1341,7 @@ bool Configurator::SaveConfiguration(Configuration *configuration) {
                 case SETTING_BOOL:
                 case SETTING_BOOL_NUMERIC:
                 case SETTING_RANGE_INT:
-                case SETTING_VUID_FILTER:{
+                case SETTING_VUID_FILTER: {
                     setting.insert("type", GetSettingTypeLabel(layer_settings.type));
                     setting.insert("default", layer_settings.value);
                 } break;

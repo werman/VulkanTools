@@ -40,29 +40,10 @@ dlgCustomPaths::dlgCustomPaths(QWidget *parent) : QDialog(parent), ui(new Ui::dl
 
 dlgCustomPaths::~dlgCustomPaths() { delete ui; }
 
+////////////////////////////////////////////////////////////////////////////
+// Load the tree widget with the current list
 void dlgCustomPaths::RepopulateTree() {
-    ui->treeWidget->clear();
-
-    Configurator &configurator = Configurator::Get();
-
-    // Populate the tree
-    for (int custom_path_index = 0, n = configurator.GetCustomLayersPathSize(); custom_path_index < n; ++custom_path_index) {
-        const QString &custom_path = configurator.GetCustomLayersPath(custom_path_index);
-
-        QTreeWidgetItem *item = new QTreeWidgetItem();
-        item->setText(0, custom_path);
-        ui->treeWidget->addTopLevelItem(item);
-
-        // Look for layers that are in this folder. If any are found, add them to the tree
-        std::vector<Layer> custom_layers;
-        configurator.LoadLayersFromPath(custom_path, custom_layers);
-
-        for (int j = 0; j < custom_layers.size(); j++) {
-            QTreeWidgetItem *child = new QTreeWidgetItem();
-            child->setText(0, custom_layers[j]._name);
-            item->addChild(child);
-        }
-    }
+    Configurator::Get().BuildCustomLayerTree(ui->treeWidget);
 }
 
 void dlgCustomPaths::on_pushButtonAdd_clicked() {

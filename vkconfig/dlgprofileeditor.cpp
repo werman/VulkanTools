@@ -237,27 +237,7 @@ void dlgProfileEditor::customTreeItemActivated(QTreeWidgetItem *item, int column
 ////////////////////////////////////////////////////////////
 // Custom layer paths and the layers found therein
 void dlgProfileEditor::PopulateCustomTree() {
-    ui->treeWidget->clear();
-
-    Configurator &configurator = Configurator::Get();
-
-    // Populate the tree
-    for (int path_index = 0; path_index < configurator.GetCustomLayersPathSize(); ++path_index) {
-        const QString custom_path = configurator.GetCustomLayersPath(path_index);
-        QTreeWidgetItem *item = new QTreeWidgetItem();
-        item->setText(0, custom_path);
-        ui->treeWidget->addTopLevelItem(item);
-
-        // Look for layers that are in this folder. If any are found, add them to the tree
-        std::vector<Layer> custom_layers;
-        configurator.LoadLayersFromPath(custom_path, custom_layers);
-
-        for (int layer_index = 0; layer_index < custom_layers.size(); ++layer_index) {
-            QTreeWidgetItem *child = new QTreeWidgetItem();
-            child->setText(0, custom_layers[layer_index]._name);
-            item->addChild(child);
-        }
-    }
+    Configurator::Get().BuildCustomLayerTree(ui->treeWidget);
 
     ui->pushButtonRemoveLayers->setEnabled(false);
 }
