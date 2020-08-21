@@ -26,19 +26,26 @@
 #include <QObject>
 #include <QWidget>
 #include <QCheckBox>
+#include <QString>
 
 class BoolSettingWidget : public QCheckBox {
     Q_OBJECT
    public:
-    BoolSettingWidget(LayerSetting *layer_settings, bool numeric = false);
+    explicit BoolSettingWidget(LayerSetting& layer_setting, SettingType setting_type);
 
    private:
-    bool _numeric_output;
-    LayerSetting *_layer_settings;
+    LayerSetting& _layer_setting;
 
    public Q_SLOTS:
     void itemToggled();
 
    Q_SIGNALS:
     void itemChanged();
+
+   private:
+    enum Mode { BOOL_NUMERIC, BOOL_STRING };
+
+    QString GetToken(bool state, SettingType type) const;
+    const QString _true_token;
+    const QString _false_token;
 };

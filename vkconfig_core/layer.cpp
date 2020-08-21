@@ -57,11 +57,6 @@ void AddString(QString& delimitedString, QString value) {
 
 Layer::Layer() : _state(LAYER_STATE_APPLICATION_CONTROLLED), _rank(0) {}
 
-Layer::~Layer() {
-    qDeleteAll(_layer_settings.begin(), _layer_settings.end());
-    _layer_settings.clear();
-}
-
 // Todo: Load the layer with Vulkan API
 bool Layer::IsValid() const {
     return !_name.isEmpty() && !_type.isEmpty() && !_library_path.isEmpty() && !_api_version.isEmpty() &&
@@ -147,7 +142,7 @@ bool Layer::ReadLayerFile(QString full_path_to_file, LayerType layer_type) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<LayerSetting*>& settings) {
+void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, std::vector<LayerSetting>& settings) {
     // Okay, how many settings do we have?
     QStringList settings_names = json_layer_settings.keys();
 
@@ -156,18 +151,18 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
         // user setting.
         if (settings_names[setting_index] == QString("layer_rank")) continue;
 
-        LayerSetting* setting = new LayerSetting;
-        setting->name = settings_names[setting_index];
+        LayerSetting setting;
+        setting.name = settings_names[setting_index];
 
         QJsonValue json_value = json_layer_settings.value(settings_names[setting_index]);
         QJsonObject json_object = json_value.toObject();
 
         // The easy stuff...
         QJsonValue value = json_object.value("description");
-        setting->description = value.toString();
+        setting.description = value.toString();
 
         value = json_object.value("name");
-        setting->label = value.toString();
+        setting.label = value.toString();
 
         // This is either a single value, or a comma delimted set of strings
         // selected from a nonexclusive list
@@ -175,12 +170,12 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
         if (value.isArray()) {
             QJsonArray array = value.toArray();
             for (int a = 0; a < array.size(); a++) {
-                setting->value += array[a].toString();
-                if (a != array.size() - 1) setting->value += ",";
+                setting.value += array[a].toString();
+                if (a != array.size() - 1) setting.value += ",";
             }
 
         } else
-            setting->value = value.toString();
+            setting.value = value.toString();
 
         ///////////////////////////////////////////////////////////////////////
         // Everything from here down revolves around the data type
@@ -190,7 +185,7 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
         QString type_string = value.toString();
         ///////////////////////////////////////////////// Exclusive Enums
         if (type_string == QString("enum")) {
-            setting->type = SETTING_EXCLUSIVE_LIST;
+            setting.type = SETTING_EXCLUSIVE_LIST;
 
             // Now we have a list of options, both the enum for the settings file, and the prompts
             value = json_object.value("options");
@@ -198,8 +193,8 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
             QStringList keys, values;
             keys = object.keys();
             for (int v = 0; v < keys.size(); v++) {
-                setting->exclusive_values << keys[v];
-                setting->exclusive_labels << object.value(keys[v]).toString();
+                setting.exclusive_values << keys[v];
+                setting.exclusive_labels << object.value(keys[v]).toString();
             }
 
             settings.push_back(setting);
@@ -208,7 +203,7 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
 
         /////////////////////////////////////////////////// Pick one or more from a list
         if (type_string == QString("multi_enum")) {
-            setting->type = SETTING_INCLUSIVE_LIST;
+            setting.type = SETTING_INCLUSIVE_LIST;
 
             // Now we have a list of options, both the enum for the settings file, and the prompts
             value = json_object.value("options");
@@ -216,8 +211,8 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
             QStringList keys, values;
             keys = object.keys();
             for (int v = 0; v < keys.size(); v++) {
-                setting->inclusive_values << keys[v];
-                setting->inclusive_labels << object.value(keys[v]).toString();
+                setting.inclusive_values << keys[v];
+                setting.inclusive_labels << object.value(keys[v]).toString();
             }
 
             settings.push_back(setting);
@@ -226,48 +221,48 @@ void Layer::LoadSettingsFromJson(QJsonObject& json_layer_settings, QVector<Layer
 
         ////////////////////////////////////////////////////// Select a file. Nice and simple
         if (type_string == QString("save_file")) {
-            setting->type = SETTING_SAVE_FILE;
+            setting.type = SETTING_SAVE_FILE;
             settings.push_back(setting);
             continue;
         }
 
         ////////////////////////////////////////////////////// Load a file.
         if (type_string == QString("load_file")) {
-            setting->type = SETTING_LOAD_FILE;
+            setting.type = SETTING_LOAD_FILE;
             settings.push_back(setting);
             continue;
         }
 
         ////////////////////////////////////////////////////// Folder to put screen shots in
         if (type_string == QString("save_folder")) {
-            setting->type = SETTING_SAVE_FOLDER;
+            setting.type = SETTING_SAVE_FOLDER;
             settings.push_back(setting);
             continue;
         }
 
         ////////////////////////////////////////////////////// Bool, also nice and simple ("true"/"false")
         if (type_string == QString("bool")) {
-            setting->type = SETTING_BOOL;
+            setting.type = SETTING_BOOL;
             settings.push_back(setting);
             continue;
         }
 
         //////////////////////////////////////////////////// Bool, but written out as 0 or 1
         if (type_string == QString("bool_numeric")) {
-            setting->type = SETTING_BOOL_NUMERIC;
+            setting.type = SETTING_BOOL_NUMERIC;
             settings.push_back(setting);
             continue;
         }
 
         //////////////////////////////////////////////////// VUID Filter List
         if (type_string == QString("vuid_exclude")) {
-            setting->type = SETTING_VUID_FILTER;
+            setting.type = SETTING_VUID_FILTER;
             settings.push_back(setting);
             continue;
         }
 
         ////////////////////////////////////////////////////// Just a string please
-        if (type_string == QString("string")) setting->type = SETTING_STRING;
+        if (type_string == QString("string")) setting.type = SETTING_STRING;
 
         settings.push_back(setting);
     }

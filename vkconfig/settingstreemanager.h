@@ -53,12 +53,12 @@ class SettingsTreeManager : QObject {
     QVector<QTreeWidgetItem *> _compound_widgets;  // These have special cleanup requirements
 
     void BuildKhronosTree();
-    void BuildGenericTree(QTreeWidgetItem *parent, Layer *layer_file);
+    void BuildGenericTree(QTreeWidgetItem *parent, Layer &layer);
 
     QVector<QTreeWidgetItem *> _layer_items;  // These parallel the  profiles layers
 
     QComboBox *_validation_presets_combo_box;
-    Layer *_validation_layer_file;
+    Layer *_validation_layer;
     QTreeWidgetItem *_validation_tree_item;
     QTreeWidgetItem *_validation_file_item;
     QTreeWidgetItem *_validation_preset_item;

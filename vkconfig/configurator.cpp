@@ -1083,7 +1083,7 @@ void Configurator::BuildCustomLayerTree(QTreeWidget *tree_widget) {
 /// Find the settings for this named layer. If none found, return nullptr
 const LayerSettingsDefaults *Configurator::FindLayerSettings(const QString &layer_name) const {
     for (int i = 0; i < _default_layers_settings.size(); i++)
-        if (layer_name == _default_layers_settings[i]->layer_name) return _default_layers_settings[i];
+        if (layer_name == _default_layers_settings[i]->name) return _default_layers_settings[i];
 
     return nullptr;
 }
@@ -1199,16 +1199,16 @@ void Configurator::LoadDefaultLayerSettings() {
     QStringList layers_with_settings = layers_options_object.keys();
     for (int i = 0; i < layers_with_settings.size(); i++) {  // For each setting
         LayerSettingsDefaults *settings_defaults = new LayerSettingsDefaults();
-        settings_defaults->layer_name = layers_with_settings[i];
+        settings_defaults->name = layers_with_settings[i];
 
         // Save the name of the layer, and by default none are read only
-        settings_defaults->layer_name = layers_with_settings[i];
+        settings_defaults->name = layers_with_settings[i];
 
         // Get the object for just this layer
         QJsonValue layerValue = layers_options_object.value(layers_with_settings[i]);
         QJsonObject layerObject = layerValue.toObject();
 
-        Layer::LoadSettingsFromJson(layerObject, settings_defaults->default_settings);
+        Layer::LoadSettingsFromJson(layerObject, settings_defaults->settings);
 
         // Add to my list of layer settings
         _default_layers_settings.push_back(settings_defaults);
@@ -1356,9 +1356,10 @@ bool Configurator::SaveConfiguration(const Configuration &configuration) {
         json_settings.insert("layer_rank", layer._rank);
 
         // Loop through the actual settings
-        for (int setting_index = 0, setting_count = layer._layer_settings.size(); setting_index < setting_count; setting_index++) {
+        for (std::size_t setting_index = 0, setting_count = layer._layer_settings.size(); setting_index < setting_count;
+             setting_index++) {
             QJsonObject setting;
-            const LayerSetting &layer_setting = *layer._layer_settings[setting_index];
+            const LayerSetting &layer_setting = layer._layer_settings[setting_index];
 
             setting.insert("name", layer_setting.label);
             setting.insert("description", layer_setting.description);
@@ -1513,10 +1514,8 @@ void Configurator::LoadDefaultSettings(Layer *blank_layer) {
         return;
 
     // Create and pop them in....
-    for (int s = 0; s < layer_settings_defaults->default_settings.size(); s++) {
-        LayerSetting *layer_setting = new LayerSetting();
-        *layer_setting = *layer_settings_defaults->default_settings[s];
-        blank_layer->_layer_settings.push_back(layer_setting);
+    for (std::size_t i = 0, n = layer_settings_defaults->settings.size(); i < n; i++) {
+        blank_layer->_layer_settings.push_back(layer_settings_defaults->settings[i]);
     }
 }
 
@@ -1560,23 +1559,23 @@ void Configurator::SetActiveConfiguration(Configuration *configuration) {
     QTextStream stream(&file);
 
     // Loop through all the layers
-    for (int layer_index = 0, layer_count = configuration->_layers.size(); layer_index < layer_count; layer_index++) {
-        Layer *layer = configuration->_layers[layer_index];
+    for (int layer_index = 0, layer_count = configuration->_layers.size(); layer_index < layer_count; ++layer_index) {
+        const Layer &layer = *configuration->_layers[layer_index];
         stream << "\n";
-        stream << "# " << layer->_name << "\n";
+        stream << "# " << layer._name << "\n";
 
-        QString short_layer_name = layer->_name;
+        QString short_layer_name = layer._name;
         short_layer_name.remove("VK_LAYER_");
         QString lc_layer_name = short_layer_name.toLower();
 
-        for (int setting_index = 0; setting_index < layer->_layer_settings.size(); setting_index++) {
-            LayerSetting *layer_settings = layer->_layer_settings[setting_index];
-            stream << lc_layer_name << "." << layer_settings->name << " = " << layer_settings->value << "\n";
+        for (int setting_index = 0, setting_count = layer._layer_settings.size(); setting_index < setting_count; ++setting_index) {
+            const LayerSetting &layer_setting = layer._layer_settings[setting_index];
+            stream << lc_layer_name << "." << layer_setting.name << " = " << layer_setting.value << "\n";
 
             // Temporary hack due to a gfxrecontruct bug for 2020 July SDK only. Remove after that release.
             if (lc_layer_name == QString("lunarg_gfxreconstruct"))
                 stream << "lunarg_gfxrecon"
-                       << "." << layer_settings->name << " = " << layer_settings->value << "\n";
+                       << "." << layer_setting.name << " = " << layer_setting.value << "\n";
         }
     }
     file.close();

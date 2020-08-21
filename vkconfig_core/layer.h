@@ -33,8 +33,10 @@
 #include <QString>
 #include <QVector>
 
-void RemoveString(QString& delimitedString, QString value);
-void AddString(QString& delimitedString, QString value);
+#include <vector>
+
+void RemoveString(QString& delimited_string, QString value);
+void AddString(QString& delimited_string, QString value);
 
 // The value of this enum can't be changed
 enum LayerState {
@@ -51,7 +53,6 @@ enum { LAYER_STATE_COUNT = LAYER_STATE_LAST - LAYER_STATE_FIRST + 1 };
 class Layer {
    public:
     Layer();
-    ~Layer();
 
     bool IsValid() const;
 
@@ -71,36 +72,31 @@ class Layer {
     // This layers settings. This will be used to build the editor
     // as well as create settings files. This CAN be empty if the
     // layer doens't have any settings.
-    QVector<LayerSetting*> _layer_settings;
+    std::vector<LayerSetting> _layer_settings;
 
     LayerState _state;
     int _rank;  // When used in a configurate, what is the rank? (0 being first layer)
 
     // No.. I do not like operator overloading. It's a bad idea.
     // Inlined here just so I can see all the variables that need to be copied.
-    void CopyLayer(Layer* destination_layer_file) const {
-        destination_layer_file->_file_format_version = _file_format_version;
-        destination_layer_file->_name = _name;
-        destination_layer_file->_type = _type;
-        destination_layer_file->_library_path = _library_path;
-        destination_layer_file->_api_version = _api_version;
-        destination_layer_file->_implementation_version = _implementation_version;
-        destination_layer_file->_description = _description;
-        destination_layer_file->_layer_type = _layer_type;
-        destination_layer_file->_state = _state;
-        destination_layer_file->_rank = _rank;
-        destination_layer_file->_layer_path = _layer_path;
-
-        for (int i = 0; i < _layer_settings.length(); i++) {
-            LayerSetting* setting = new LayerSetting();
-            *setting = *_layer_settings[i];
-            destination_layer_file->_layer_settings.push_back(setting);
-        }
+    void CopyLayer(Layer* destination_layer) const {
+        destination_layer->_file_format_version = _file_format_version;
+        destination_layer->_name = _name;
+        destination_layer->_type = _type;
+        destination_layer->_library_path = _library_path;
+        destination_layer->_api_version = _api_version;
+        destination_layer->_implementation_version = _implementation_version;
+        destination_layer->_description = _description;
+        destination_layer->_layer_type = _layer_type;
+        destination_layer->_state = _state;
+        destination_layer->_rank = _rank;
+        destination_layer->_layer_path = _layer_path;
+        destination_layer->_layer_settings = _layer_settings;
     }
 
     // File based layers
     bool ReadLayerFile(QString full_path_to_file, LayerType layer_type);
 
     // Utility, may move outside this class....
-    static void LoadSettingsFromJson(QJsonObject& layer_settings_descriptors, QVector<LayerSetting*>& layers);
+    static void LoadSettingsFromJson(QJsonObject& layer_settings_descriptors, std::vector<LayerSetting>& settings);
 };
